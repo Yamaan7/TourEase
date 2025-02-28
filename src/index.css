@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.mapboxgl-popup {
+  @apply max-w-xs;
+}
+
+.mapboxgl-popup-content {
+  @apply p-4 rounded-lg shadow-lg;
+}
+
+.mapboxgl-popup-content h3 {
+  @apply text-lg font-semibold mb-1;
+}
+
+.mapboxgl-popup-content p {
+  @apply text-gray-600;
+}
