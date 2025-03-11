@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, Mail, Lock } from 'lucide-react';
+import { LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 const Login = () => {
@@ -10,37 +10,117 @@ const Login = () => {
     password: ''
   });
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
+    // Check for admin credentials
+    // Replace the admin credentials check section with this:
+    // Check for admin credentials
+    if (formData.email === 'admin@gmail.com' && formData.password === 'admin') {
+      try {
+        // Show loading state
+        Swal.fire({
+          title: 'Logging in...',
+          text: 'Please wait',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        // Make API call to admin login endpoint
+        const response = await fetch('http://localhost:5000/api/auth/admin/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          await Swal.fire({
+            icon: 'success',
+            title: 'Welcome Admin!',
+            text: 'Login successful',
+            confirmButtonColor: '#3B82F6',
+            timer: 1500,
+            timerProgressBar: true
+          });
+
+          // Store admin token and info
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('isAdmin', 'true');
+          localStorage.setItem('role', 'admin'); // Add this line
+          localStorage.setItem('user', JSON.stringify({
+            role: 'admin',
+            email: formData.email,
+            name: 'Admin'
+          }));
+
+          navigate('/admin');
+          return;
+        } else {
+          throw new Error(data.message || 'Admin login failed');
+        }
+      } catch (err: any) { // Type assertion for error
+        const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+        Swal.fire({
+          icon: 'error',
+          title: 'Login Failed',
+          text: errorMessage,
+          confirmButtonColor: '#3B82F6'
+        });
+        return;
+      }
+    }
+
+    // Regular user authentication
     try {
+      // Show loading state
+      Swal.fire({
+        title: 'Logging in...',
+        text: 'Please wait',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Show success message
+        // Show success message for regular user
         await Swal.fire({
           icon: 'success',
           title: 'Login Successful!',
           text: 'Welcome back!',
-          confirmButtonColor: '#3B82F6'
+          confirmButtonColor: '#3B82F6',
+          timer: 1500,
+          timerProgressBar: true
         });
 
-        // Store the token
+        // Store user data
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data));
+        localStorage.setItem('isAdmin', 'false');
 
-        // Redirect to dashboard or home page
-        navigate('/dashboard'); // or wherever you want to redirect after login
+        // Redirect to user dashboard
+        navigate('/dashboard');
       } else {
         // Show error message
         Swal.fire({
@@ -60,6 +140,7 @@ const Login = () => {
         confirmButtonColor: '#3B82F6'
       });
       setError('Server error. Please try again later.');
+      console.error('Login error:', err);
     }
   };
 
@@ -99,7 +180,7 @@ const Login = () => {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   id="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -107,6 +188,17 @@ const Login = () => {
                   placeholder="Enter your password"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
               </div>
             </div>
 
@@ -132,6 +224,20 @@ const Login = () => {
             >
               Sign In
             </button>
+
+            {/* Add the guest button */}
+            <Link
+              to="/home"
+              className="w-full block text-center bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              Continue as Guest
+            </Link>
+            <Link
+              to="/agencylogin"
+              className="block text-center bg-blue-50 text-blue-700 py-3 px-4 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              Continue as Agency
+            </Link>
           </div>
         </form>
 

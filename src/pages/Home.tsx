@@ -90,10 +90,10 @@ const Home = () => {
                 <ChevronRight className="ml-2" />
               </Link>
               <Link
-                to="/admin"
-                className="inline-flex items-center px-8 py-4 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors text-lg font-semibold"
+                to="/agency-registration"
+                className="inline-flex items-center px-8 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold"
               >
-                Admin Dashboard
+                Register Agency
                 <ChevronRight className="ml-2" />
               </Link>
             </div>

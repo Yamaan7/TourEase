@@ -5,6 +5,7 @@ import { MapPin, Calendar, Users, DollarSign, Star } from 'lucide-react';
 const BookingModal = lazy(() => import('./BookingModal'));
 const ReviewForm = lazy(() => import('./ReviewForm'));
 
+// Update interface to match Tours.tsx
 interface TourCardProps {
   tour: {
     title: string;
@@ -17,9 +18,11 @@ interface TourCardProps {
     startDates: Date[];
     location: {
       address: string;
+      coordinates: [number, number];
     };
-    rating?: number;
-    reviews?: number;
+    rating: number;
+    reviews: number;
+    agencyName?: string;
   };
 }
 
@@ -37,20 +40,23 @@ const TourCard: React.FC<TourCardProps> = ({ tour }) => {
             className="w-full h-48 sm:h-56 object-cover"
             loading="lazy"
           />
-          {tour.rating && (
-            <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-md flex items-center gap-1">
-              <Star className="w-4 h-4 text-yellow-400 fill-current" />
-              <span className="font-semibold">{tour.rating}</span>
-              {tour.reviews && (
-                <span className="text-sm text-gray-500">({tour.reviews})</span>
-              )}
+          <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-md flex items-center gap-1">
+            <Star className="w-4 h-4 text-yellow-400 fill-current" />
+            <span className="font-semibold">{tour.rating.toFixed(1)}</span>
+            <span className="text-sm text-gray-500">({tour.reviews})</span>
+          </div>
+          {tour.agencyName && (
+            <div className="absolute bottom-4 left-4 bg-white/90 px-3 py-1 rounded-full shadow-md">
+              <span className="text-sm text-gray-700">By {tour.agencyName}</span>
             </div>
           )}
         </div>
 
         <div className="p-4 sm:p-6">
           <h3 className="text-lg sm:text-xl font-semibold mb-2">{tour.title}</h3>
-          <p className="text-gray-600 mb-4 line-clamp-2 text-sm sm:text-base">{tour.description}</p>
+          <p className="text-gray-600 mb-4 line-clamp-2 text-sm sm:text-base">
+            {tour.description}
+          </p>
 
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-gray-500 mb-3 text-sm">
             <div className="flex items-center gap-1">
@@ -70,13 +76,18 @@ const TourCard: React.FC<TourCardProps> = ({ tour }) => {
             </div>
             <div className="flex items-center gap-1">
               <DollarSign size={16} />
-              <span>{tour.price}</span>
+              <span>${tour.price.toLocaleString()}</span>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-              {tour.difficulty}
+            <span className={`px-3 py-1 rounded-full text-sm ${tour.difficulty === 'easy'
+              ? 'bg-green-100 text-green-800'
+              : tour.difficulty === 'medium'
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-orange-100 text-orange-800'
+              }`}>
+              {tour.difficulty.charAt(0).toUpperCase() + tour.difficulty.slice(1)}
             </span>
             <div className="flex gap-2 w-full sm:w-auto">
               <button
@@ -100,7 +111,6 @@ const TourCard: React.FC<TourCardProps> = ({ tour }) => {
         {showBooking && (
           <BookingModal tour={tour} onClose={() => setShowBooking(false)} />
         )}
-
         {showReview && (
           <ReviewForm tourTitle={tour.title} onClose={() => setShowReview(false)} />
         )}

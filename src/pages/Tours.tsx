@@ -1,17 +1,58 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import TourCard from '../components/TourCard';
+import Swal from 'sweetalert2';
 
-
+// Import example tour images
 import parisImg from '../assets/images/destinations/paris_3_.webp';
 import romeImg from '../assets/images/destinations/rome_4_.webp';
 import tokyoImg from '../assets/images/destinations/tokyo_5_.webp';
 
+// Import TourPackages component
+import TourPackages from '../components/TourPackages';
+
 // Lazy load the map component
 const TourMap = lazy(() => import('../components/TourMap'));
 
-// Example tour data (in a real app, this would come from an API)
-const exampleTours = [
+// Define interfaces for API response
+interface TourPackage {
+  packageName: string;
+  packageDescription: string;
+  tourLocation: string;
+  duration: number;
+  maxGroupSize: number;
+  price: number;
+  image: string;
+}
+
+// Update the Agency interface to remove status
+interface Agency {
+  _id: string;
+  agencyName: string;
+  tourPackages: TourPackage[];
+}
+
+// Define the Tour interface
+interface Tour {
+  title: string;
+  description: string;
+  price: number;
+  duration: number;
+  maxGroupSize: number;
+  difficulty: string;
+  images: string[];
+  startDates: Date[];
+  location: {
+    address: string;
+    coordinates: [number, number];
+  };
+  rating: number;
+  reviews: number;
+  agencyName?: string;
+}
+
+// Example tour data with proper typing
+const exampleTours: Tour[] = [
   {
     title: "Explore Ancient Rome",
     description: "Walk through the historic streets of Rome, visit the Colosseum, and experience the rich history of the Roman Empire.",
@@ -23,7 +64,7 @@ const exampleTours = [
     startDates: [new Date()],
     location: {
       address: "Rome, Italy",
-      coordinates: [12.4964, 41.9028]
+      coordinates: [12.4964, 41.9028] as [number, number]
     },
     rating: 4.8,
     reviews: 124
@@ -39,7 +80,7 @@ const exampleTours = [
     startDates: [new Date()],
     location: {
       address: "Paris, France",
-      coordinates: [2.3522, 48.8566]
+      coordinates: [2.3522, 48.8566] as [number, number]
     },
     rating: 4.9,
     reviews: 89
@@ -55,7 +96,7 @@ const exampleTours = [
     startDates: [new Date()],
     location: {
       address: "Tokyo, Japan",
-      coordinates: [139.6503, 35.6762]
+      coordinates: [139.6503, 35.6762] as [number, number]
     },
     rating: 4.7,
     reviews: 156
@@ -63,9 +104,12 @@ const exampleTours = [
 ];
 
 const Tours = () => {
+  // State management with proper typing
+  const [tours, setTours] = useState<Tour[]>(exampleTours);
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [selectedTour, setSelectedTour] = useState<number | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
     difficulty: '',
@@ -74,14 +118,98 @@ const Tours = () => {
     groupSize: ''
   });
 
-  const locations = exampleTours.map(tour => ({
-    coordinates: tour.location.coordinates as [number, number],
+  // Replace the fetchApprovedTours function with fetchAllTours
+  const fetchAllTours = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/agencies/all', {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch tours');
+      }
+
+      const data: Agency[] = await response.json();
+
+      // Transform agency tour packages into the tour format
+      const agencyTours: Tour[] = data.flatMap((agency: Agency) =>
+        agency.tourPackages.map((pkg: TourPackage): Tour => ({
+          title: pkg.packageName,
+          description: pkg.packageDescription,
+          price: pkg.price,
+          duration: pkg.duration,
+          maxGroupSize: pkg.maxGroupSize,
+          difficulty: "medium",
+          images: [pkg.image],
+          startDates: [new Date()],
+          location: {
+            address: pkg.tourLocation,
+            coordinates: [0, 0] as [number, number]
+          },
+          rating: 0,
+          reviews: 0,
+          agencyName: agency.agencyName
+        }))
+      );
+
+      // Combine example tours with agency tours
+      setTours([...exampleTours, ...agencyTours]);
+    } catch (error) {
+      console.error('Error fetching tours:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Failed to fetch tours',
+        text: 'An error occurred while fetching the available tours. Please try again later.'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Update the useEffect hook
+  useEffect(() => {
+    fetchAllTours();
+  }, []);
+
+  // Get locations for map view
+  const locations = tours.map(tour => ({
+    coordinates: tour.location.coordinates,
     name: tour.title,
     description: tour.location.address
   }));
 
+  // Filter tours based on search and filters
+  const filteredTours = tours.filter(tour => {
+    const matchesSearch = tour.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+      tour.description.toLowerCase().includes(filters.search.toLowerCase()) ||
+      tour.location.address.toLowerCase().includes(filters.search.toLowerCase());
+
+    const matchesDifficulty = !filters.difficulty || tour.difficulty === filters.difficulty;
+
+    const matchesDuration = !filters.duration || (
+      filters.duration === '1-3' ? tour.duration <= 3 :
+        filters.duration === '4-7' ? tour.duration > 3 && tour.duration <= 7 :
+          tour.duration > 7
+    );
+
+    const matchesGroupSize = !filters.groupSize || (
+      filters.groupSize === '1-5' ? tour.maxGroupSize <= 5 :
+        filters.groupSize === '6-10' ? tour.maxGroupSize > 5 && tour.maxGroupSize <= 10 :
+          tour.maxGroupSize > 10
+    );
+
+    const matchesPrice = !filters.priceRange || (
+      filters.priceRange === '0-100' ? tour.price <= 100 :
+        filters.priceRange === '101-300' ? tour.price > 100 && tour.price <= 300 :
+          tour.price > 300
+    );
+
+    return matchesSearch && matchesDifficulty && matchesDuration && matchesGroupSize && matchesPrice;
+  });
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 mt-16"> {/* Added mt-16 here */}
+    <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 mt-16">
+      {/* Header and View Toggle */}
       <div className="mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold">Available Tours</h1>
@@ -107,6 +235,7 @@ const Tours = () => {
           </div>
         </div>
 
+        {/* Search and Filters */}
         <div className="bg-white p-4 rounded-lg shadow-md">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
@@ -130,6 +259,7 @@ const Tours = () => {
             </button>
           </div>
 
+          {/* Filter Options */}
           {showFilters && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
               <select
@@ -180,21 +310,36 @@ const Tours = () => {
         </div>
       </div>
 
+      {/* Tours Grid/Map View */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className={viewMode === 'map' ? 'lg:col-span-1' : 'lg:col-span-2'}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {exampleTours.map((tour, index) => (
-              <div
-                key={index}
-                onMouseEnter={() => setSelectedTour(index)}
-                onMouseLeave={() => setSelectedTour(null)}
-              >
-                <TourCard tour={tour} />
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[1, 2, 3, 4].map((_, index) => (
+                <div key={index} className="animate-pulse bg-gray-200 rounded-lg h-96"></div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {filteredTours.map((tour, index) => (
+                <div
+                  key={index}
+                  onMouseEnter={() => setSelectedTour(index)}
+                  onMouseLeave={() => setSelectedTour(null)}
+                >
+                  <TourCard tour={tour} />
+                </div>
+              ))}
+              {filteredTours.length === 0 && (
+                <div className="col-span-2 text-center py-8 text-gray-500">
+                  No tours found matching your criteria
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
+        {/* Map View */}
         {viewMode === 'map' && (
           <div className="lg:col-span-1 h-[calc(100vh-200px)] sticky top-8">
             <Suspense fallback={<div className="w-full h-full bg-gray-100 animate-pulse rounded-lg" />}>
@@ -207,8 +352,16 @@ const Tours = () => {
             </Suspense>
           </div>
         )}
+
+
+
       </div>
 
+      {/* Add the TourPackages section */}
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold mb-6">Approved Tour Packages</h2>
+        <TourPackages />
+      </div>
     </div>
   );
 };
