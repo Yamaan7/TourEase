@@ -1,20 +1,82 @@
 import React, { useState } from 'react';
 import { Star } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 interface ReviewFormProps {
   onClose: () => void;
   tourTitle: string;
+  tourId: string;
+  packageId: string;
+  onReviewSubmitted: () => void;
 }
 
-const ReviewForm: React.FC<ReviewFormProps> = ({ onClose, tourTitle }) => {
+const ReviewForm: React.FC<ReviewFormProps> = ({
+  onClose,
+  tourTitle,
+  tourId,
+  packageId,  // Add this to destructuring
+  onReviewSubmitted
+}) => {
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [review, setReview] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert('This is a demo. Review submission requires backend integration.');
-    onClose();
+    if (rating === 0) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Rating Required',
+        text: 'Please select a rating before submitting',
+        confirmButtonColor: '#3B82F6',
+      });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) throw new Error('User not logged in');
+      const user = JSON.parse(userStr);
+
+      const response = await fetch('http://localhost:5000/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          tourId,
+          packageId, // Add this
+          rating,
+          review,
+          userId: user.id,
+          userName: user.name
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to submit review');
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Review Submitted',
+        text: 'Thank you for your feedback!',
+        confirmButtonColor: '#3B82F6',
+      });
+
+      onReviewSubmitted();
+      onClose();
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to submit review. Please try again.',
+        confirmButtonColor: '#3B82F6',
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -38,11 +100,10 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ onClose, tourTitle }) => {
                   onMouseLeave={() => setHover(0)}
                 >
                   <Star
-                    className={`w-8 h-8 ${
-                      star <= (hover || rating)
-                        ? 'text-yellow-400 fill-current'
-                        : 'text-gray-300'
-                    }`}
+                    className={`w-8 h-8 ${star <= (hover || rating)
+                      ? 'text-yellow-400 fill-current'
+                      : 'text-gray-300'
+                      }`}
                   />
                 </button>
               ))}
@@ -73,9 +134,13 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ onClose, tourTitle }) => {
             </button>
             <button
               type="submit"
-              className="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              disabled={submitting}
+              className={`flex-1 ${submitting
+                ? 'bg-blue-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+                } text-white py-3 rounded-lg transition-colors`}
             >
-              Submit Review
+              {submitting ? 'Submitting...' : 'Submit Review'}
             </button>
           </div>
         </form>

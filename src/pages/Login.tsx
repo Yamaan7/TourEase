@@ -63,6 +63,8 @@ const Login = () => {
             name: 'Admin'
           }));
 
+          window.dispatchEvent(new Event('authChange'));
+
           navigate('/admin');
           return;
         } else {
@@ -237,6 +239,12 @@ const Login = () => {
               className="block text-center bg-blue-50 text-blue-700 py-3 px-4 rounded-lg hover:bg-blue-100 transition-colors"
             >
               Continue as Agency
+            </Link>
+            <Link
+              to="/admin/login"
+              className="block text-center bg-red-50 text-red-700 py-3 px-4 rounded-lg hover:bg-red-100 transition-colors"
+            >
+              Continue as Admin
             </Link>
           </div>
         </form>

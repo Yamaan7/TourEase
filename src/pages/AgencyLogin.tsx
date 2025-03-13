@@ -54,6 +54,8 @@ const AgencyLogin = () => {
                 localStorage.setItem('user', JSON.stringify(data));
                 localStorage.setItem('isAgency', 'true');
 
+                window.dispatchEvent(new Event('authChange'));
+
                 // Redirect to agency dashboard
                 navigate('/agency-dashboard');
             } else {

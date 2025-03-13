@@ -17,7 +17,12 @@ const Navbar = () => {
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
-  const getInitial = (name: string) => {
+  // Update the getInitial function
+  const getInitial = (user: any) => {
+    if (!user) return '?';
+
+    // Check for different user types and their name properties
+    const name = user.name || user.agencyName || user.email;
     return name?.charAt(0)?.toUpperCase() || '?';
   };
 
@@ -32,11 +37,37 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // useEffect(() => {
+  //   const storedUser = localStorage.getItem('user');
+  //   if (storedUser) {
+  //     setUser(JSON.parse(storedUser));
+  //   }
+  // }, []);
+
   useEffect(() => {
+    // Initial user check
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+
+    // Listen for auth changes
+    const handleAuthChange = () => {
+      const updatedUser = localStorage.getItem('user');
+      if (updatedUser) {
+        setUser(JSON.parse(updatedUser));
+      } else {
+        setUser(null);
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('authChange', handleAuthChange);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('authChange', handleAuthChange);
+    };
   }, []);
 
   const toggleMenu = () => {
@@ -47,10 +78,12 @@ const Navbar = () => {
     setIsMenuOpen(false);
   };
 
+  // In Navbar.tsx handleLogout function:
   const handleLogout = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     setUser(null);
+    window.dispatchEvent(new Event('authChange')); // Add this line
     navigate('/login');
   };
 
@@ -80,7 +113,7 @@ const Navbar = () => {
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className={`w-8 h-8 rounded-full text-white flex items-center justify-center text-sm font-medium ${getRandomColor()}`}
                 >
-                  {getInitial(user.name)}
+                  {getInitial(user)}
                 </button>
                 {isDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white shadow-md rounded-lg py-1">
@@ -128,7 +161,7 @@ const Navbar = () => {
               {user && (
                 <div className="flex items-center space-x-3 py-2 border-b border-gray-200">
                   <div className={`w-8 h-8 rounded-full text-white flex items-center justify-center text-sm font-medium ${getRandomColor()}`}>
-                    {getInitial(user.name)}
+                    {getInitial(user)}
                   </div>
                   <span className="text-gray-700 font-medium">{user.name}</span>
                 </div>

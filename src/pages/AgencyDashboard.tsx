@@ -56,6 +56,10 @@ const AgencyDashboard = () => {
         approved: 0,
         rejected: 0
     });
+    // Add these new states after other state declarations
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingPackage, setEditingPackage] = useState<TourPackage | null>(null);
+    const [editingTourId, setEditingTourId] = useState<string>('');
 
     // Replace the existing useEffect for fetching tours
     useEffect(() => {
@@ -254,6 +258,89 @@ const AgencyDashboard = () => {
         }
     };
 
+    // Add this new handler function after other handlers
+    const handleEditClick = (tourId: string, pkg: TourPackage) => {
+        setEditingTourId(tourId);
+        setEditingPackage(pkg);
+        setIsEditModalOpen(true);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingPackage || !editingTourId) return;
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/tours/${editingTourId}/package/${editingPackage._id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                credentials: 'include',
+                body: JSON.stringify(editingPackage)
+            });
+
+            if (response.ok) {
+                // Update the local state to reflect changes
+                const updatedTours = agencyTours.map(tour => {
+                    if (tour._id === editingTourId) {
+                        return {
+                            ...tour,
+                            packages: tour.packages.map(pkg =>
+                                pkg._id === editingPackage._id ? editingPackage : pkg
+                            )
+                        };
+                    }
+                    return tour;
+                });
+
+                setAgencyTours(updatedTours);
+                setIsEditModalOpen(false);
+                setEditingPackage(null);
+                setEditingTourId('');
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: 'Tour package has been updated successfully'
+                });
+            } else {
+                throw new Error('Failed to update tour package');
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to update tour package. Please try again.'
+            });
+        }
+    };
+
+    // Add this handler function after your other handlers
+    const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'File too large',
+                    text: 'Image size should be less than 5MB'
+                });
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                if (editingPackage) {
+                    setEditingPackage({
+                        ...editingPackage,
+                        image: reader.result as string
+                    });
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 pt-16">
             <div className="container mx-auto px-4 py-8">
@@ -331,6 +418,12 @@ const AgencyDashboard = () => {
                                         <p className="text-sm text-gray-600">Price: ${pkg.price}</p>
                                         <div className="mt-4 flex justify-end space-x-2">
                                             <button
+                                                onClick={() => handleEditClick(tour._id, pkg)}
+                                                className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
                                                 onClick={() => handleDeleteTour(tour._id)}
                                                 className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
                                             >
@@ -358,6 +451,158 @@ const AgencyDashboard = () => {
                     onSubmit={handleSubmit}
                 />
             </div>
+
+
+            {/* Add the Edit Modal component before the closing div of your return statement */}
+            {isEditModalOpen && editingPackage && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-semibold">Edit Tour Package</h2>
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="text-gray-500 hover:text-gray-700"
+                            >
+                                <X className="h-6 w-6" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleEditSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Package Name</label>
+                                <input
+                                    type="text"
+                                    value={editingPackage.packageName}
+                                    onChange={(e) => setEditingPackage({
+                                        ...editingPackage,
+                                        packageName: e.target.value
+                                    })}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Location</label>
+                                <input
+                                    type="text"
+                                    value={editingPackage.tourLocation}
+                                    onChange={(e) => setEditingPackage({
+                                        ...editingPackage,
+                                        tourLocation: e.target.value
+                                    })}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Description</label>
+                                <textarea
+                                    value={editingPackage.packageDescription}
+                                    onChange={(e) => setEditingPackage({
+                                        ...editingPackage,
+                                        packageDescription: e.target.value
+                                    })}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    rows={3}
+                                    required
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Duration (days)</label>
+                                    <input
+                                        type="number"
+                                        value={editingPackage.duration}
+                                        onChange={(e) => setEditingPackage({
+                                            ...editingPackage,
+                                            duration: parseInt(e.target.value)
+                                        })}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        min="1"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Group Size</label>
+                                    <input
+                                        type="number"
+                                        value={editingPackage.maxGroupSize}
+                                        onChange={(e) => setEditingPackage({
+                                            ...editingPackage,
+                                            maxGroupSize: parseInt(e.target.value)
+                                        })}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        min="1"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Price</label>
+                                <input
+                                    type="number"
+                                    value={editingPackage.price}
+                                    onChange={(e) => setEditingPackage({
+                                        ...editingPackage,
+                                        price: parseInt(e.target.value)
+                                    })}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                    min="0"
+                                    required
+                                />
+                            </div>
+
+                            {/* Image upload section */}
+                            <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700">
+                                    Tour Image
+                                </label>
+                                <div className="flex items-center space-x-4">
+                                    {editingPackage.image && (
+                                        <div className="relative w-24 h-24">
+                                            <img
+                                                src={editingPackage.image}
+                                                alt="Tour preview"
+                                                className="w-24 h-24 object-cover rounded"
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="flex-1">
+                                        <input
+                                            type="file"
+                                            onChange={handleEditImageChange}
+                                            className="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-md file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100"
+                                            accept="image/*"
+                                        />
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Max file size: 5MB. Recommended size: 800x600px
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex justify-end space-x-2 mt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
