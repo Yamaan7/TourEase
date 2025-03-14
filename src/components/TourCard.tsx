@@ -59,12 +59,12 @@ const TourCard: React.FC<TourCardProps> = ({ tour, onReviewSubmitted }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`  // Make sure token format is correct
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           tourId: tour._id,
           packageId: tour.packageId,
-          userId: user._id  // Changed from user.id to user._id to match MongoDB
+          userId: user._id
         })
       });
 
@@ -75,9 +75,14 @@ const TourCard: React.FC<TourCardProps> = ({ tour, onReviewSubmitted }) => {
 
       const data = await response.json();
       setIsLiked(data.liked);
-      setLikesCount(prev => data.liked ? prev + 1 : prev - 1);
+
+      // Update likes count while preventing negative values
+      setLikesCount(prev => {
+        const newCount = data.liked ? prev + 1 : Math.max(0, prev - 1);
+        return newCount;
+      });
+
     } catch (err) {
-      // Type the error properly
       const error = err as Error;
       console.error('Error toggling like:', error);
       Swal.fire({
@@ -87,6 +92,30 @@ const TourCard: React.FC<TourCardProps> = ({ tour, onReviewSubmitted }) => {
         confirmButtonColor: '#3B82F6',
       });
     }
+  };
+
+  const handleBooking = () => {
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+
+    if (!token || !userStr) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Login Required',
+        text: 'Please login to book this tour',
+        confirmButtonColor: '#3B82F6',
+        showCancelButton: true,
+        cancelButtonText: 'Cancel',
+        confirmButtonText: 'Login',
+      }).then((result) => {
+        if (result.isConfirmed) {
+          window.location.href = '/login';
+        }
+      });
+      return;
+    }
+
+    setShowBooking(true);
   };
 
   return (
@@ -167,7 +196,7 @@ const TourCard: React.FC<TourCardProps> = ({ tour, onReviewSubmitted }) => {
                 Review
               </button>
               <button
-                onClick={() => setShowBooking(true)}
+                onClick={handleBooking}
                 className="flex-1 sm:flex-initial px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
               >
                 Book Now

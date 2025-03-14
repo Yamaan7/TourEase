@@ -171,7 +171,7 @@ const AgencyLogin = () => {
 
                 <p className="mt-6 text-center text-sm text-gray-600">
                     Don't have an agency account?{' '}
-                    <Link to="/agency/register" className="text-blue-600 hover:text-blue-500 font-medium">
+                    <Link to="/agency-registration" className="text-blue-600 hover:text-blue-500 font-medium">
                         Register your agency
                     </Link>
                 </p>

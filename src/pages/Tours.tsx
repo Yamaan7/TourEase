@@ -14,8 +14,9 @@ import TourPackages from '../components/TourPackages';
 // Lazy load the map component
 const TourMap = lazy(() => import('../components/TourMap'));
 
-// Define interfaces for API response
+// Update the TourPackage interface
 interface TourPackage {
+  _id: string;  // Add this
   packageName: string;
   packageDescription: string;
   tourLocation: string;
@@ -33,7 +34,27 @@ interface Agency {
 }
 
 // Define the Tour interface
+// interface Tour {
+//   title: string;
+//   description: string;
+//   price: number;
+//   duration: number;
+//   maxGroupSize: number;
+//   difficulty: string;
+//   images: string[];
+//   startDates: Date[];
+//   location: {
+//     address: string;
+//     coordinates: [number, number];
+//   };
+//   rating: number;
+//   reviews: number;
+//   agencyName?: string;
+// }
+
 interface Tour {
+  _id: string;          // Add this
+  packageId: string;    // Add this
   title: string;
   description: string;
   price: number;
@@ -49,11 +70,16 @@ interface Tour {
   rating: number;
   reviews: number;
   agencyName?: string;
+  isLiked?: boolean;
+  likesCount?: number;
 }
+
 
 // Example tour data with proper typing
 const exampleTours: Tour[] = [
   {
+    _id: "example-rome-1",      // Add unique ID
+    packageId: "pkg-rome-1",    // Add package ID
     title: "Explore Ancient Rome",
     description: "Walk through the historic streets of Rome, visit the Colosseum, and experience the rich history of the Roman Empire.",
     price: 199,
@@ -70,6 +96,8 @@ const exampleTours: Tour[] = [
     reviews: 124
   },
   {
+    _id: "example-paris-1",     // Add unique ID
+    packageId: "pkg-paris-1",   // Add package ID
     title: "Paris Discovery Tour",
     description: "Experience the magic of Paris with guided tours of the Eiffel Tower, Louvre Museum, and charming Montmartre district.",
     price: 249,
@@ -86,6 +114,8 @@ const exampleTours: Tour[] = [
     reviews: 89
   },
   {
+    _id: "example-tokyo-1",     // Add unique ID
+    packageId: "pkg-tokyo-1",   // Add package ID
     title: "Tokyo Adventure",
     description: "Immerse yourself in Japanese culture, visit ancient temples, and explore modern Tokyo's vibrant districts.",
     price: 299,
@@ -134,6 +164,8 @@ const Tours = () => {
       // Transform agency tour packages into the tour format
       const agencyTours: Tour[] = data.flatMap((agency: Agency) =>
         agency.tourPackages.map((pkg: TourPackage): Tour => ({
+          _id: agency._id,              // Use agency ID or generate unique ID
+          packageId: pkg._id || `pkg-${agency._id}-${Math.random()}`, // Use package ID or generate one
           title: pkg.packageName,
           description: pkg.packageDescription,
           price: pkg.price,
@@ -206,6 +238,10 @@ const Tours = () => {
 
     return matchesSearch && matchesDifficulty && matchesDuration && matchesGroupSize && matchesPrice;
   });
+
+  const handleReviewSubmitted = async () => {
+    await fetchAllTours(); // Refresh tours data after new review
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 mt-16">
@@ -327,7 +363,10 @@ const Tours = () => {
                   onMouseEnter={() => setSelectedTour(index)}
                   onMouseLeave={() => setSelectedTour(null)}
                 >
-                  <TourCard tour={tour} />
+                  <TourCard
+                    tour={tour}
+                    onReviewSubmitted={handleReviewSubmitted}
+                  />
                 </div>
               ))}
               {filteredTours.length === 0 && (
