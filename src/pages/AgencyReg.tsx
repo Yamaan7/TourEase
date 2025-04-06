@@ -3,16 +3,32 @@ import { Link, useNavigate } from 'react-router-dom';
 import { UserPlus, Mail, Lock, Building, User, Phone, Eye, EyeOff } from 'lucide-react';
 import Swal from 'sweetalert2';
 
+interface FormData {
+    agencyName: string;
+    ownerName: string;
+    email: string;
+    phone: string;
+    password: string;
+    confirmPassword: string;
+    taxId: string;
+    taxCertificate: File | null;
+}
+
 const AgencyReg = () => {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({
+    // Update the useState with the proper type
+    const [formData, setFormData] = useState<FormData>({
         agencyName: '',
         ownerName: '',
         email: '',
         phone: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        taxId: '',
+        taxCertificate: null
     });
+
+
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -31,6 +47,17 @@ const AgencyReg = () => {
             return;
         }
 
+        // Check file size
+        if (formData.taxCertificate && formData.taxCertificate.size > 5 * 1024 * 1024) {
+            Swal.fire({
+                icon: 'error',
+                title: 'File Too Large',
+                text: 'Tax certificate file must be less than 5MB',
+                confirmButtonColor: '#3B82F6'
+            });
+            return;
+        }
+
         try {
             Swal.fire({
                 title: 'Registering...',
@@ -41,13 +68,17 @@ const AgencyReg = () => {
                 }
             });
 
+            const formDataToSend = new FormData();
+            Object.entries(formData).forEach(([key, value]) => {
+                if (key !== 'confirmPassword' && value !== null) {
+                    formDataToSend.append(key, value);
+                }
+            });
+
             const response = await fetch('http://localhost:5000/api/auth/agency/register', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 credentials: 'include',
-                body: JSON.stringify(formData),
+                body: formDataToSend,
             });
 
             const data = await response.json();
@@ -159,6 +190,49 @@ const AgencyReg = () => {
                                 placeholder="Enter contact number"
                                 required
                             />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="taxId" className="block text-sm font-medium text-gray-700 mb-1">
+                            Tax ID Number
+                        </label>
+                        <div className="relative">
+                            <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                            <input
+                                type="text"
+                                id="taxId"
+                                value={formData.taxId}
+                                onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
+                                className="pl-10 w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Enter Tax ID Number"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="taxCertificate" className="block text-sm font-medium text-gray-700 mb-1">
+                            Tax Registration Certificate
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="file"
+                                id="taxCertificate"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    setFormData({ ...formData, taxCertificate: file || null });
+                                }}
+                                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 
+                       file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0
+                       file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700
+                       hover:file:bg-blue-100"
+                                required
+                            />
+                            <p className="mt-1 text-xs text-gray-500">
+                                Accepted formats: PDF, JPG, JPEG, PNG (Max size: 5MB)
+                            </p>
                         </div>
                     </div>
 

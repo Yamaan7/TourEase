@@ -16,6 +16,9 @@ import AgencyReg from './pages/AgencyReg';
 import AgencyLogin from './pages/AgencyLogin';
 import AgencyDashboard from './pages/AgencyDashboard';
 import AdminLogin from './pages/AdminLogin';
+import EmergencyButton from './components/Emergencybutton';
+import ForgotPassword from './components/ForgotPassword';
+
 
 
 function App() {
@@ -44,11 +47,13 @@ function App() {
               <Route path="/agencylogin" element={<AgencyLogin />} />
               <Route path="/agency-registration" element={<AgencyReg />} />
               <Route path="/agency-dashboard" element={<AgencyDashboard />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
             </Routes>
           </main>
           <Footer />
           <GoToTop />
-          <div className="fixed bottom-4 right-4 z-50">
+          <div className="fixed right-4 bottom-4 flex flex-col items-end space-y-4">
+            <EmergencyButton />
             <Chatbox />
           </div>
         </div>

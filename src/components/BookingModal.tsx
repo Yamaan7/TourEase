@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { Calendar, Users, CreditCard, X } from 'lucide-react';
 import { PayPalButtons } from '@paypal/react-paypal-js';
 import Swal from 'sweetalert2';
+import { saveBookingState } from '../utils/bookingState';
 
 interface BookingModalProps {
   tour: {
+    _id: string;
+    packageId: string;
     title: string;
     price: number;
   };
@@ -23,6 +26,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ tour, onClose }) => {
     e.preventDefault();
     alert('This is a demo. Booking functionality requires backend integration.');
     onClose();
+  };
+
+  const handleContinueToPayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Now TypeScript knows these properties exist
+    saveBookingState(tour._id, tour.packageId);
+    setStep(2);
   };
 
   return (
@@ -44,7 +54,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ tour, onClose }) => {
               <p className="text-gray-600">Price per person: ${tour.price}</p>
             </div>
 
-            <form onSubmit={(e) => { e.preventDefault(); setStep(2); }}>
+            {/* <form onSubmit={(e) => { e.preventDefault(); setStep(2); }}> */}
+            <form onSubmit={handleContinueToPayment}>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

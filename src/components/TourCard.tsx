@@ -1,17 +1,17 @@
 import React, { lazy, Suspense } from 'react';
-import { MapPin, Calendar, Users, DollarSign, Heart } from 'lucide-react';
+import { MapPin, Calendar, Users, DollarSign, Heart, Star } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { useState, useEffect } from 'react';
 
 // Lazy load modals
 const BookingModal = lazy(() => import('./BookingModal'));
 const ReviewForm = lazy(() => import('./ReviewForm'));
+const ReviewsModal = lazy(() => import('./ReviewsModal'));
 
-// Update interface to match Tours.tsx
 interface TourCardProps {
   tour: {
     _id: string;
-    packageId: string;  // Add this
+    packageId: string;
     title: string;
     description: string;
     price: number;
@@ -33,11 +33,104 @@ interface TourCardProps {
   onReviewSubmitted: () => void;
 }
 
+interface Review {
+  userName: string;
+  rating: number;
+  review: string;
+  createdAt: string;
+}
+
+
 const TourCard: React.FC<TourCardProps> = ({ tour, onReviewSubmitted }) => {
-  const [showBooking, setShowBooking] = React.useState(false);
-  const [showReview, setShowReview] = React.useState(false);
-  const [isLiked, setIsLiked] = useState(tour.isLiked || false);
-  const [likesCount, setLikesCount] = useState(tour.likesCount || 0);
+  const [showBooking, setShowBooking] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const [showReviews, setShowReviews] = useState(false);
+  const [likesCount, setLikesCount] = useState<number>(Math.max(0, tour.likesCount || 0));
+  const [isLiked, setIsLiked] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+
+  // Fetch reviews function
+  const fetchReviews = async () => {
+    try {
+      setLoadingReviews(true);
+      const response = await fetch(
+        `http://localhost:5000/api/reviews/${tour._id}/${tour.packageId}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Fetched reviews:', data);
+      setReviews(Array.isArray(data) ? data : []);
+
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      setReviews([]);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  // Also add an initial fetch when component mounts
+  useEffect(() => {
+    fetchReviews();
+  }, [tour._id, tour.packageId]);
+
+  // Review button click handler
+  const handleReviewClick = async () => {
+    await fetchReviews();
+    setShowReviews(true);
+  };
+
+
+
+  // Fetch initial likes count when component mounts
+  useEffect(() => {
+    const fetchInitialLikes = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/likes/totalLikes/${tour._id}/${tour.packageId}`
+        );
+        const data = await response.json();
+        setLikesCount(Math.max(0, data.totalLikes));
+      } catch (error) {
+        console.error('Error fetching initial likes:', error);
+      }
+    };
+
+    fetchInitialLikes();
+  }, [tour._id, tour.packageId]);
+
+  // Check if current user has liked the tour
+  useEffect(() => {
+    const checkLikeStatus = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+
+        if (token && userStr) {
+          const user = JSON.parse(userStr);
+          const response = await fetch(
+            `http://localhost:5000/api/likes/status/${tour._id}/${tour.packageId}/${user._id}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            }
+          );
+          const data = await response.json();
+          setIsLiked(data.isLiked);
+        }
+      } catch (error) {
+        console.error('Error checking like status:', error);
+      }
+    };
+
+    checkLikeStatus();
+  }, [tour._id, tour.packageId]);
 
   const handleLike = async () => {
     try {
@@ -68,19 +161,13 @@ const TourCard: React.FC<TourCardProps> = ({ tour, onReviewSubmitted }) => {
         })
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to toggle like');
+        throw new Error(data.message || 'Failed to toggle like');
       }
 
-      const data = await response.json();
       setIsLiked(data.liked);
-
-      // Update likes count while preventing negative values
-      setLikesCount(prev => {
-        const newCount = data.liked ? prev + 1 : Math.max(0, prev - 1);
-        return newCount;
-      });
+      setLikesCount(Math.max(0, data.totalLikes));
 
     } catch (err) {
       const error = err as Error;
@@ -128,11 +215,15 @@ const TourCard: React.FC<TourCardProps> = ({ tour, onReviewSubmitted }) => {
             className="w-full h-48 sm:h-56 object-cover"
             loading="lazy"
           />
-          {/* <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-md flex items-center gap-1">
+          <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-md flex items-center gap-1">
             <Star className="w-4 h-4 text-yellow-400 fill-current" />
-            <span className="font-semibold">{tour.rating.toFixed(1)}</span>
-            <span className="text-sm text-gray-500">({tour.reviews})</span>
-          </div> */}
+            <span className="font-semibold">
+              {tour.rating > 0 ? tour.rating.toFixed(1) : 'New'}
+            </span>
+            <span className="text-sm text-gray-500">
+              ({tour.reviews})
+            </span>
+          </div>
           {tour.agencyName && (
             <div className="absolute bottom-4 left-4 bg-white/90 px-3 py-1 rounded-full shadow-md">
               <span className="text-sm text-gray-700">By {tour.agencyName}</span>
@@ -169,15 +260,6 @@ const TourCard: React.FC<TourCardProps> = ({ tour, onReviewSubmitted }) => {
           </div>
 
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            {/* <span className={`px-3 py-1 rounded-full text-sm ${tour.difficulty === 'easy'
-              ? 'bg-green-100 text-green-800'
-              : tour.difficulty === 'medium'
-                ? 'bg-blue-100 text-blue-800'
-                : 'bg-orange-100 text-orange-800'
-              }`}>
-              {tour.difficulty.charAt(0).toUpperCase() + tour.difficulty.slice(1)}
-            </span> */}
-
             <button
               onClick={handleLike}
               className="flex items-center gap-2 px-3 py-1 rounded-full text-sm hover:bg-gray-100 transition-colors"
@@ -185,15 +267,15 @@ const TourCard: React.FC<TourCardProps> = ({ tour, onReviewSubmitted }) => {
               <Heart
                 className={`w-5 h-5 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-400'}`}
               />
-              <span className="text-gray-600">{likesCount}</span>
+              <span className="text-gray-600">{Math.max(0, likesCount)}</span>
             </button>
 
             <div className="flex gap-2 w-full sm:w-auto">
               <button
-                onClick={() => setShowReview(true)}
+                onClick={handleReviewClick}
                 className="flex-1 sm:flex-initial px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
               >
-                Review
+                Reviews
               </button>
               <button
                 onClick={handleBooking}
@@ -208,15 +290,34 @@ const TourCard: React.FC<TourCardProps> = ({ tour, onReviewSubmitted }) => {
 
       <Suspense fallback={null}>
         {showBooking && (
-          <BookingModal tour={tour} onClose={() => setShowBooking(false)} />
+          <BookingModal
+            tour={tour}
+            onClose={() => setShowBooking(false)}
+          />
+        )}
+        {showReviews && (
+          <ReviewsModal
+            tourTitle={tour.title}
+            reviews={reviews}
+            onClose={() => setShowReviews(false)}
+            onAddReview={() => {
+              setShowReviews(false);
+              setShowReview(true);
+            }}
+          />
         )}
         {showReview && (
           <ReviewForm
             tourTitle={tour.title}
             tourId={tour._id}
-            packageId={tour.packageId} // Add this
+            packageId={tour.packageId}
             onClose={() => setShowReview(false)}
-            onReviewSubmitted={onReviewSubmitted}
+            onReviewSubmitted={() => {
+              onReviewSubmitted();
+              fetchReviews();
+              setShowReview(false);
+              setShowReviews(true);
+            }}
           />
         )}
       </Suspense>

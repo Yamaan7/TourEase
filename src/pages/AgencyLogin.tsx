@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Swal from 'sweetalert2';
+import AgencyForgotPassword from '../components/AgencyForgotPassword';
 
 const AgencyLogin = () => {
     const navigate = useNavigate();
@@ -149,9 +150,7 @@ const AgencyLogin = () => {
                                     Remember me
                                 </label>
                             </div>
-                            <a href="#" className="text-sm text-blue-600 hover:text-blue-500">
-                                Forgot password?
-                            </a>
+                            <AgencyForgotPassword currentEmail={formData.email} />
                         </div>
 
                         <button

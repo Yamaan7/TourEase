@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { hasUserBooked } from '../utils/bookingState';
 
 interface ReviewFormProps {
   onClose: () => void;
@@ -21,15 +22,66 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
   const [hover, setHover] = useState(0);
   const [review, setReview] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Check if user has already reviewed
+  useEffect(() => {
+    const checkReviewStatus = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch(
+          `http://localhost:5000/api/reviews/check/${tourId}/${packageId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+
+        if (!response.ok) throw new Error('Failed to check review status');
+        const data = await response.json();
+
+        if (data.hasReviewed) {
+          Swal.fire({
+            icon: 'info',
+            title: 'Already Reviewed',
+            text: 'You have already submitted a review for this tour package',
+            confirmButtonColor: '#3B82F6',
+          }).then(() => {
+            onClose();
+          });
+        }
+      } catch (error) {
+        console.error('Error checking review status:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkReviewStatus();
+  }, [tourId, packageId, onClose]);
+
+  // Prevent form submission while loading
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (rating === 0) {
+
+    // Check if user has booked this tour
+    // Replace the existing Swal.fire call in handleSubmit
+    if (!hasUserBooked(tourId, packageId)) {
       Swal.fire({
-        icon: 'error',
-        title: 'Rating Required',
-        text: 'Please select a rating before submitting',
+        icon: 'warning',
+        title: 'Booking Required',
+        text: 'You need to book this tour before submitting a review',
         confirmButtonColor: '#3B82F6',
+        confirmButtonText: 'OK',
+      }).then(() => {
+        onClose();
       });
       return;
     }
@@ -48,7 +100,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
         },
         body: JSON.stringify({
           tourId,
-          packageId, // Add this
+          packageId,
           rating,
           review,
           userId: user.id,
@@ -58,6 +110,9 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
 
       if (!response.ok) throw new Error('Failed to submit review');
 
+      // Get the updated package data with new rating
+      const updatedData = await response.json();
+
       await Swal.fire({
         icon: 'success',
         title: 'Review Submitted',
@@ -65,6 +120,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
         confirmButtonColor: '#3B82F6',
       });
 
+      // Pass the updated data to the parent component
       onReviewSubmitted();
       onClose();
     } catch (error) {

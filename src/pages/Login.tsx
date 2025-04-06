@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Swal from 'sweetalert2';
+import ForgotPassword from '../components/ForgotPassword';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -215,9 +216,10 @@ const Login = () => {
                   Remember me
                 </label>
               </div>
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-500">
+              {/* <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
                 Forgot password?
-              </a>
+              </Link> */}
+              <ForgotPassword currentEmail={formData.email} />
             </div>
 
             <button

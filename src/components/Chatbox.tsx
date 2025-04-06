@@ -203,7 +203,7 @@ const Chatbox: React.FC = () => {
     }
 
     return (
-        <div className="bg-white rounded-2xl shadow-2xl w-[350px] h-[500px] flex flex-col overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-2xl w-[350px] h-[500px] flex flex-col overflow-hidden z-60">
             {/* Header */}
             <div className="flex items-center justify-between p-4 bg-blue-600 text-white">
                 <div className="flex items-center gap-2">

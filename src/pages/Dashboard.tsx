@@ -217,10 +217,15 @@ const Dashboard = () => {
                     {/* Liked Tours */}
                     <div className="bg-white rounded-lg shadow">
                         <div className="p-6">
-                            <h2 className="text-xl font-semibold mb-4 flex items-center">
-                                <Heart className="w-5 h-5 mr-2 text-red-500" />
-                                Liked Tours
-                            </h2>
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl font-semibold flex items-center">
+                                    <Heart className="w-5 h-5 mr-2 text-red-500" />
+                                    Liked Tours
+                                </h2>
+                                <span className="bg-red-100 text-red-600 py-1 px-3 rounded-full text-sm font-medium">
+                                    {stats?.likedTours?.length || 0} likes
+                                </span>
+                            </div>
                             {stats?.likedTours?.length ? (
                                 <div className="space-y-4">
                                     {stats.likedTours.map((like) => (
@@ -238,10 +243,15 @@ const Dashboard = () => {
                     {/* Reviews */}
                     <div className="bg-white rounded-lg shadow">
                         <div className="p-6">
-                            <h2 className="text-xl font-semibold mb-4 flex items-center">
-                                <Star className="w-5 h-5 mr-2 text-yellow-400" />
-                                Your Reviews
-                            </h2>
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl font-semibold flex items-center">
+                                    <Star className="w-5 h-5 mr-2 text-yellow-400" />
+                                    Your Reviews
+                                </h2>
+                                <span className="bg-yellow-100 text-yellow-600 py-1 px-3 rounded-full text-sm font-medium">
+                                    {stats?.reviews?.length || 0} reviews
+                                </span>
+                            </div>
                             {stats?.reviews?.length ? (
                                 <div className="space-y-4">
                                     {stats.reviews.map((review) => (

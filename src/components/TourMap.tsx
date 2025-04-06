@@ -25,6 +25,23 @@ const TourMap: React.FC<TourMapProps> = ({
 
   useEffect(() => {
     // Load Google Maps Script
+
+    // const loadGoogleMaps = () => {
+    //   if (window.google) {
+    //     initializeMap();
+    //     return;
+    //   }
+
+    //   const script = document.createElement('script');
+    //   script.src = `https://maps.gomaps.pro/maps/api/js?key=${import.meta.env.VITE_GOMAPS_API_KEY}`;
+    //   script.async = true;
+    //   script.defer = true;
+    //   script.onload = initializeMap;
+    //   document.head.appendChild(script);
+
+    //   script.onload = initializeMap;
+    // };
+
     const loadGoogleMaps = () => {
       if (window.google) {
         initializeMap();
@@ -32,13 +49,12 @@ const TourMap: React.FC<TourMapProps> = ({
       }
 
       const script = document.createElement('script');
-      script.src = `https://maps.gomaps.pro/maps/api/js?key=${import.meta.env.VITE_GOMAPS_API_KEY}`;
+      // Update this line to use Google Maps API instead of GoMaps
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`;
       script.async = true;
       script.defer = true;
       script.onload = initializeMap;
       document.head.appendChild(script);
-
-      script.onload = initializeMap;
     };
 
     const initializeMap = () => {
